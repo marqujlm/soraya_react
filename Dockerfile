@@ -12,7 +12,10 @@ COPY package*.json ./
 # Instala as dependências de forma limpa
 RUN npm ci
 
-# Declarar os argumentos (o Railway precisa deles declarados AQUI para aceitá-los)
+# Copia o restante do código da aplicação
+COPY . .
+
+# Argumentos (Variáveis de Ambiente preenchidas no painel do Railway)
 ARG VITE_FIREBASE_API_KEY
 ARG VITE_FIREBASE_AUTH_DOMAIN
 ARG VITE_FIREBASE_PROJECT_ID
@@ -22,21 +25,21 @@ ARG VITE_FIREBASE_APP_ID
 ARG VITE_API_DIFY
 ARG VITE_ENDPOINT_DIFY
 
-# Copia o restante do código da aplicação
-COPY . .
+# Passando os ARGs para variáveis de ambiente ENV persistentes (essencial pro Vite/NPM enxergar na build!)
+ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
+ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
+ENV VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
+ENV VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
+ENV VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
+ENV VITE_API_DIFY=$VITE_API_DIFY
+ENV VITE_ENDPOINT_DIFY=$VITE_ENDPOINT_DIFY
 
-# Em vez de passar os ARGs um por um (que pode falhar em alguns builders), 
-# vamos garantir que o Docker crie as variáveis VITE no momento do build
-# O Railway consegue injetar variaveis VITE se nós simplesmente executarmos o build
-RUN VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY} \
-    VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN} \
-    VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID} \
-    VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET} \
-    VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID} \
-    VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID} \
-    VITE_API_DIFY=${VITE_API_DIFY} \
-    VITE_ENDPOINT_DIFY=${VITE_ENDPOINT_DIFY} \
-    npm run build
+# Print de debug no console do deploy do Railway (pra você ver se chegou vazio ou não lá nos logs)
+RUN echo "DEBUG VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}"
+
+# Faz o build de produção (agora os ENVs estão injetados no contexto)
+RUN npm run build
 
 # ==========================================
 # Estágio 2: Servidor Web Nginx (Produção)
