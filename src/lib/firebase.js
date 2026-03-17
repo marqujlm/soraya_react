@@ -13,6 +13,21 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+console.log("🔥 Firebase Config Variables:", {
+  apiKey: firebaseConfig.apiKey ? "PREENCHIDA" : "VAZIA (ERRO)",
+  projectId: firebaseConfig.projectId ? "PREENCHIDA" : "VAZIA (ERRO)"
+});
+
+let app;
+let auth;
+let db;
+
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} catch (error) {
+  console.error("🔥 ERRO FATAL: Falha ao inicializar o Firebase. As variáveis de ambiente provavelmente estão vazias no Build do Docker.", error);
+}
+
+export { auth, db };

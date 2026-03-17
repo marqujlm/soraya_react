@@ -19,9 +19,17 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [firebaseError, setFirebaseError] = useState(false);
 
   // Fica escutando as mudanças de estado do usuário (se logou ou deslogou)
   useEffect(() => {
+    if (!auth) {
+      console.error("Auth module is undefined. Stopping AuthProvider.");
+      setFirebaseError(true);
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
@@ -86,6 +94,16 @@ export function AuthProvider({ children }) {
     updateUserProfile,
     logout
   };
+
+  if (firebaseError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', textAlign: 'center', padding: '2rem' }}>
+        <h1 style={{ color: 'red' }}>⚠️ Erro Crítico no Ambiente de Produção</h1>
+        <p>As variáveis de ambiente do Firebase não foram injetadas corretamente no Build do Docker.</p>
+        <p>Acesse o painel do Railway e garanta que as variáveis VITE_FIREBASE_... estão preenchidas <b>antes</b> do processo de Build.</p>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={value}>
