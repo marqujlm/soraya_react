@@ -49,19 +49,14 @@ FROM nginx:alpine
 # Remove as configurações padrões do Nginx
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Copia nossa configuração de segurança em formato de template
-COPY nginx.template.conf /etc/nginx/conf.d/
+# Copia nossa configuração de segurança
+COPY nginx.conf /etc/nginx/conf.d/
 
 # Copia os arquivos minificados do estágio de build para o servidor Nginx
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copia o script de inicialização
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
-# A porta dinâmica do Railway (se não houver, usará a 80 por causa do script)
+# A porta que o Nginx vai usar
 EXPOSE 80
 
-# Inicia passando pelo script que injeta o $PORT real no arquivo do Nginx
-ENTRYPOINT ["/start.sh"]
+# Inicia o Nginx normalmente
 CMD ["nginx", "-g", "daemon off;"]
