@@ -55,8 +55,12 @@ COPY nginx.conf /etc/nginx/conf.d/
 # Copia os arquivos minificados do estágio de build para o servidor Nginx
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Copia o script de injeção de variáveis
+COPY entrypoint.sh /entrypoint.sh
+
 # Expõe a porta que o Nginx vai usar (Railway mapeia para a porta dinâmica dele ou usa a 80 por padrão se usarmos o Nginx Alpine puro)
 EXPOSE 80
 
 # Inicia o Nginx usando ENTRYPOINT para garantir a execução principal como processo 1
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["nginx", "-g", "daemon off;"]
