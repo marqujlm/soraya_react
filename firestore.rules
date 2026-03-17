@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Regras para a coleção de usuários
+    match /users/{userId} {
+      // Qualquer um pode criar o seu próprio documento de usuário no cadastro (admin)
+      // O usuário logado só pode ler e atualizar o SEU PRÓPRIO documento
+      allow read, create, update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false; // Por segurança, não permitimos que o usuário apague sua própria conta via app
+      
+      // Regras para a subcoleção de chats
+      match /chats/{chatId} {
+        // O usuário logado só pode acessar as mensagens e chats da SUA subcoleção
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
