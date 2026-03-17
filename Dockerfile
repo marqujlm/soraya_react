@@ -12,27 +12,31 @@ COPY package*.json ./
 # Instala as dependências de forma limpa
 RUN npm ci
 
-# Copia o restante do código da aplicação
-COPY . .
-
-# Argumentos de Build do Railway (Variáveis do Firebase)
+# Declarar os argumentos (o Railway precisa deles declarados AQUI para aceitá-los)
 ARG VITE_FIREBASE_API_KEY
 ARG VITE_FIREBASE_AUTH_DOMAIN
 ARG VITE_FIREBASE_PROJECT_ID
 ARG VITE_FIREBASE_STORAGE_BUCKET
 ARG VITE_FIREBASE_MESSAGING_SENDER_ID
 ARG VITE_FIREBASE_APP_ID
+ARG VITE_API_DIFY
+ARG VITE_ENDPOINT_DIFY
 
-# Transforma os Argumentos em Variáveis de Ambiente para o Vite enxergar
-ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
-ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
-ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
-ENV VITE_FIREBASE_STORAGE_BUCKET=$VITE_FIREBASE_STORAGE_BUCKET
-ENV VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID
-ENV VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
+# Copia o restante do código da aplicação
+COPY . .
 
-# Faz o build de produção (gera a pasta /dist)
-RUN npm run build
+# Em vez de passar os ARGs um por um (que pode falhar em alguns builders), 
+# vamos garantir que o Docker crie as variáveis VITE no momento do build
+# O Railway consegue injetar variaveis VITE se nós simplesmente executarmos o build
+RUN VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY} \
+    VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN} \
+    VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID} \
+    VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET} \
+    VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID} \
+    VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID} \
+    VITE_API_DIFY=${VITE_API_DIFY} \
+    VITE_ENDPOINT_DIFY=${VITE_ENDPOINT_DIFY} \
+    npm run build
 
 # ==========================================
 # Estágio 2: Servidor Web Nginx (Produção)

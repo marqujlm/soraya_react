@@ -208,7 +208,10 @@ export default function Chat() {
           formData.append('file', arquivo);
           formData.append('user', currentUser.uid);
 
-          const uploadRes = await fetch('/api/dify/files/upload', {
+          const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || '/api/dify';
+          const uploadUrl = endpointDify.endsWith('/') ? `${endpointDify}files/upload` : `${endpointDify}/files/upload`;
+
+          const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${import.meta.env.VITE_API_DIFY}`
@@ -223,7 +226,8 @@ export default function Chat() {
         }
       }
 
-      const url = `/api/dify/chat-messages`;
+      const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || '/api/dify';
+      const url = endpointDify.endsWith('/') ? `${endpointDify}chat-messages` : `${endpointDify}/chat-messages`;
       
       const bodyParams = {
         inputs: {},
