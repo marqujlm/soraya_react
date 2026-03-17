@@ -208,11 +208,10 @@ export default function Chat() {
           formData.append('file', arquivo);
           formData.append('user', currentUser.uid);
 
-          const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || "VITE_ENDPOINT_DIFY_PLACEHOLDER";
-          const actualEndpointDify = endpointDify === "VITE_ENDPOINT_DIFY_PLACEHOLDER" ? '/api/dify' : endpointDify;
-          const uploadUrl = actualEndpointDify.endsWith('/') ? `${actualEndpointDify}files/upload` : `${actualEndpointDify}/files/upload`;
+          const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || '/api/dify';
+          const uploadUrl = endpointDify.endsWith('/') ? `${endpointDify}files/upload` : `${endpointDify}/files/upload`;
 
-          const apiDify = import.meta.env.VITE_API_DIFY || "VITE_API_DIFY_PLACEHOLDER";
+          const apiDify = import.meta.env.VITE_API_DIFY || "";
 
           const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
@@ -229,9 +228,8 @@ export default function Chat() {
         }
       }
 
-      const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || "VITE_ENDPOINT_DIFY_PLACEHOLDER";
-      const actualEndpointDify = endpointDify === "VITE_ENDPOINT_DIFY_PLACEHOLDER" ? '/api/dify' : endpointDify;
-      const url = actualEndpointDify.endsWith('/') ? `${actualEndpointDify}chat-messages` : `${actualEndpointDify}/chat-messages`;
+      const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || '/api/dify';
+      const url = endpointDify.endsWith('/') ? `${endpointDify}chat-messages` : `${endpointDify}/chat-messages`;
       
       const bodyParams = {
         inputs: {},
@@ -252,7 +250,7 @@ export default function Chat() {
         bodyParams.conversation_id = conversationId;
       }
 
-      const apiDify = import.meta.env.VITE_API_DIFY || "VITE_API_DIFY_PLACEHOLDER";
+      const apiDify = import.meta.env.VITE_API_DIFY || "";
 
       const response = await fetch(url, {
         method: 'POST',
