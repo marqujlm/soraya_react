@@ -47,10 +47,10 @@ RUN npm run build
 FROM nginx:alpine
 
 # Remove as configurações padrões do Nginx
-RUN rm /etc/nginx/conf.d/default.conf
+RUN rm -rf /etc/nginx/conf.d/*
 
-# Copia nossa configuração de segurança
-COPY nginx.conf /etc/nginx/conf.d/
+# Copia nossa configuração de segurança substituindo o default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copia os arquivos minificados do estágio de build para o servidor Nginx
 COPY --from=build /app/dist /usr/share/nginx/html
