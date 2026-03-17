@@ -24,6 +24,4 @@ dist-ssr
 *.sw?
 
 # Files
-.env
-.env.local
 text/firebase_directions.txt
