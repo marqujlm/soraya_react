@@ -23,11 +23,15 @@ let auth;
 let db;
 
 try {
+  if (!firebaseConfig.apiKey) {
+    throw new Error("apiKey do Firebase está vazia!");
+  }
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
+  console.log("Firebase inicializado com sucesso.");
 } catch (error) {
-  console.error("🔥 ERRO FATAL: Falha ao inicializar o Firebase. As variáveis de ambiente provavelmente estão vazias no Build do Docker.", error);
+  console.error("🔥 ERRO FATAL: Falha ao inicializar o Firebase. As variáveis de ambiente estão vazias no momento do Build.", error);
 }
 
-export { auth, db };
+export { app, auth, db };
