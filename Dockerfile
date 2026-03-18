@@ -54,7 +54,7 @@ COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Expor uma porta (Railway mapeará para a $PORT nativamente)
-EXPOSE 80
+EXPOSE 8080
 
 # Inicia o Nginx normalmente (ele executa os templates antes sozinho)
 CMD ["nginx", "-g", "daemon off;"]
