@@ -23,9 +23,6 @@ let auth;
 let db;
 
 try {
-  if (!firebaseConfig.apiKey) {
-    throw new Error("apiKey do Firebase vazia no Build. Verifique os build args do Railway.");
-  }
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);

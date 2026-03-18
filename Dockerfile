@@ -49,14 +49,15 @@ FROM nginx:alpine
 # Remove as configurações padrões do Nginx
 RUN rm -rf /etc/nginx/conf.d/*
 
-# Copia nossa configuração de segurança substituindo o default.conf
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copia a configuração usando a pasta mágica de templates do Nginx
+# O Nginx Alpine substituirá a variável ${PORT} e gerará o arquivo real no boot
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Copia os arquivos minificados do estágio de build para o servidor Nginx
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# A porta que o Nginx vai usar
+# Expor uma porta (Railway mapeará para a $PORT nativamente)
 EXPOSE 80
 
-# Inicia o Nginx normalmente
+# Inicia o Nginx normalmente (ele executa os templates antes sozinho)
 CMD ["nginx", "-g", "daemon off;"]
