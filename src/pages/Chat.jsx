@@ -208,16 +208,11 @@ export default function Chat() {
           formData.append('file', arquivo);
           formData.append('user', currentUser.uid);
 
-          const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || '/api/dify';
-          const uploadUrl = endpointDify.endsWith('/') ? `${endpointDify}files/upload` : `${endpointDify}/files/upload`;
-
-          const apiDify = import.meta.env.VITE_API_DIFY || "";
+          // Chama o proxy Nginx sem expor URL final ou chaves
+          const uploadUrl = '/api/dify/files/upload';
 
           const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiDify}`
-            },
             body: formData
           });
 
@@ -228,8 +223,7 @@ export default function Chat() {
         }
       }
 
-      const endpointDify = import.meta.env.VITE_ENDPOINT_DIFY || '/api/dify';
-      const url = endpointDify.endsWith('/') ? `${endpointDify}chat-messages` : `${endpointDify}/chat-messages`;
+      const url = '/api/dify/chat-messages';
       
       const bodyParams = {
         inputs: {},
@@ -250,13 +244,13 @@ export default function Chat() {
         bodyParams.conversation_id = conversationId;
       }
 
-      const apiDify = import.meta.env.VITE_API_DIFY || "";
+      // Chama o nosso próprio servidor proxy Nginx sem passar chave nenhuma
+      const url = '/api/dify/chat-messages';
 
       const response = await fetch(url, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiDify}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(bodyParams)
       });
