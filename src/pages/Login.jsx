@@ -28,11 +28,12 @@ export default function Login() {
       await login(email, password);
       navigate('/', { replace: true });
     } catch (err) {
-      console.error(err);
+      console.error("ERRO LOGIN:", err);
       if (err.code === 'auth/invalid-credential') {
         setError('E-mail ou senha incorretos.');
       } else {
-        setError('Erro ao autenticar. Tente novamente.');
+        // Exibe o código real do erro na tela para diagnosticarmos
+        setError(`Erro: ${err.code || err.message}. Tente novamente.`);
       }
     } finally {
       setIsLoading(false);
