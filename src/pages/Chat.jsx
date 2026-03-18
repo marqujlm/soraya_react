@@ -216,7 +216,10 @@ export default function Chat() {
             body: formData
           });
 
-          if (!uploadRes.ok) throw new Error(`Erro ao fazer upload do arquivo ${arquivo.name}.`);
+          if (!uploadRes.ok) {
+            const errData = await uploadRes.json().catch(() => ({}));
+            throw new Error(`Falha no anexo (${arquivo.name}): ${errData.message || uploadRes.statusText}`);
+          }
           
           const uploadData = await uploadRes.json();
           fileIds.push(uploadData.id);
@@ -233,11 +236,16 @@ export default function Chat() {
       };
 
       if (fileIds.length > 0) {
-        bodyParams.files = fileIds.map(id => ({
-          type: "document",
-          transfer_method: "local_file",
-          upload_file_id: id
-        }));
+        bodyParams.files = fileIds.map((id, idx) => {
+          const file = arquivosEnviados[idx];
+          const isImage = file.type.startsWith('image/');
+          
+          return {
+            type: isImage ? "image" : "document",
+            transfer_method: "local_file",
+            upload_file_id: id
+          };
+        });
       }
 
       if (conversationId) {
@@ -302,7 +310,7 @@ export default function Chat() {
       }
     } catch (err) {
       console.error("Erro na API Dify:", err);
-      setMensagens([...novasMensagens, { role: 'assistant', content: '❌ Erro ao consultar agente.' }]);
+      setMensagens([...novasMensagens, { role: 'assistant', content: `❌ Erro: ${err.message || 'Falha ao consultar agente.'}` }]);
     } finally {
       setCarregando(false);
     }
