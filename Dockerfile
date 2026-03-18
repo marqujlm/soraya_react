@@ -46,12 +46,12 @@ RUN npm run build
 # ==========================================
 FROM nginx:alpine
 
-# Copia os arquivos minificados do estágio de build para o servidor Nginx
-COPY --from=build /app/build /usr/share/nginx/html
-
 # Copia a configuração usando a pasta mágica de templates do Nginx
 # O Nginx Alpine substituirá a variável ${PORT} e gerará o arquivo real no boot
 COPY nginx.conf /etc/nginx/templates/default.conf.template
+
+# Copia os arquivos minificados do estágio de build para o servidor Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Expor uma porta (Railway mapeará para a $PORT nativamente)
 EXPOSE 80
