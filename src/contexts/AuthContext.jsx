@@ -24,7 +24,9 @@ export function AuthProvider({ children }) {
   // Fica escutando as mudanças de estado do usuário (se logou ou deslogou)
   useEffect(() => {
     if (!auth) {
-      console.warn("Auth module is undefined, but trying to continue.");
+      console.warn("Auth module is undefined. Stop loading screen so users can see the error.");
+      setLoading(false);
+      return;
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
