@@ -3,9 +3,9 @@
   "build": {
     "builder": "NIXPACKS"
   },
-  "deploy": {
-    "startCommand": "npm start",
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
-  }
+  "scripts": {
+  "build": "vite build",
+  "start": "serve -s dist -l $PORT",
+  "postinstall": "npm rebuild @tailwindcss/oxide --update-binary || true"
+}
 }
