@@ -245,8 +245,6 @@ export default function Chat() {
       }
 
       // Chama o nosso próprio servidor proxy Nginx sem passar chave nenhuma
-      const url = '/api/dify/chat-messages';
-
       const response = await fetch(url, {
         method: 'POST',
         headers: { 
