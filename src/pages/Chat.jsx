@@ -218,7 +218,7 @@ export default function Chat() {
 
           if (!uploadRes.ok) {
             const errData = await uploadRes.json().catch(() => ({}));
-            throw new Error(`Falha no anexo (${arquivo.name}): ${errData.message || uploadRes.statusText}`);
+            throw new Error(`Falha no anexo (${arquivo.name}): [HTTP ${uploadRes.status}] ${errData.message || uploadRes.statusText}`);
           }
           
           const uploadData = await uploadRes.json();
@@ -238,6 +238,8 @@ export default function Chat() {
       if (fileIds.length > 0) {
         bodyParams.files = fileIds.map((id, idx) => {
           const file = arquivosEnviados[idx];
+          
+          // Dify suporta 'image' (jpg, jpeg, png, gif, webp, svg) e 'document' para o resto
           const isImage = file.type.startsWith('image/');
           
           return {
