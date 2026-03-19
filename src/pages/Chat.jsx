@@ -35,7 +35,6 @@ export default function Chat() {
   const [pergunta, setPergunta] = useState('');
   const [mensagens, setMensagens] = useState([]);
   const [carregando, setCarregando] = useState(false);
-  const [conversationId, setConversationId] = useState('');
   const [arquivosSelecionados, setArquivosSelecionados] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentChatId, setCurrentChatId] = useState(() => Date.now().toString());
@@ -89,7 +88,6 @@ export default function Chat() {
       const title = mensagens[0]?.content.substring(0, 30) + (mensagens[0]?.content.length > 30 ? '...' : '');
       
       const chatData = {
-        difyConversationId: conversationId,
         messages: mensagens,
         title: title || 'Novo Chat',
         updatedAt: serverTimestamp()
@@ -116,7 +114,7 @@ export default function Chat() {
     };
     
     saveChat();
-  }, [mensagens, conversationId, currentChatId, currentUser]);
+  }, [mensagens, currentChatId, currentUser]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -129,7 +127,6 @@ export default function Chat() {
   const iniciarNovoChat = () => {
     if (mensagens.length === 0) return;
     setMensagens([]);
-    setConversationId('');
     setArquivosSelecionados([]);
     setCurrentChatId(Date.now().toString());
   };
@@ -140,7 +137,6 @@ export default function Chat() {
     if (chat) {
       setCurrentChatId(id);
       setMensagens(chat.messages || []);
-      setConversationId(chat.difyConversationId || '');
       setArquivosSelecionados([]);
     }
   };
@@ -181,6 +177,25 @@ export default function Chat() {
     setArquivosSelecionados(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
+// Converte um arquivo do input HTML para o formato InlineData que o Gemini espera
+  const fileToGenerativePart = async (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        // Pega apenas a string Base64 depois da vírgula do DataURL
+        const base64Data = reader.result.split(',')[1];
+        resolve({
+          inlineData: {
+            data: base64Data,
+            mimeType: file.type
+          }
+        });
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const enviarPergunta = async (e) => {
     e.preventDefault();
     if ((!pergunta.trim() && arquivosSelecionados.length === 0) || carregando) return;
@@ -200,67 +215,44 @@ export default function Chat() {
     setCarregando(true);
 
     try {
-      const fileIds = [];
+      const parts = [];
+      
+      // Adicionar o texto principal na lista de partes
+      if (mensagemUser.trim()) {
+        parts.push({ text: mensagemUser });
+      }
 
+      // Converter e adicionar os arquivos em Base64
       if (arquivosEnviados.length > 0) {
         for (const arquivo of arquivosEnviados) {
-          const formData = new FormData();
-          // A API do Dify espera estritamente o arquivo e o usuário.
-          formData.append('file', arquivo);
-          formData.append('user', currentUser.uid);
-
-          // Opcional: Se for imagem e precisar adicionar o type explicitamente
-          // (A maioria dos navegadores já anexa o mime-type no blob, mas por via das dúvidas)
-          
-          // Chama o proxy Nginx sem expor URL final ou chaves
-          const uploadUrl = '/api/dify/files/upload';
-
-          // ATENÇÃO: NUNCA defina 'Content-Type': 'multipart/form-data' manualmente no fetch, 
-          // o navegador precisa definir o "boundary" sozinho!
-          const uploadRes = await fetch(uploadUrl, {
-            method: 'POST',
-            body: formData
-          });
-
-          if (!uploadRes.ok) {
-            const errData = await uploadRes.json().catch(() => ({}));
-            throw new Error(`Falha no anexo (${arquivo.name}): [HTTP ${uploadRes.status}] ${errData.message || uploadRes.statusText}`);
-          }
-          
-          const uploadData = await uploadRes.json();
-          fileIds.push(uploadData.id);
+          const filePart = await fileToGenerativePart(arquivo);
+          parts.push(filePart);
         }
       }
 
-      const url = '/api/dify/chat-messages';
-      
+      // Recuperar histórico formatado para o Gemini
+      // O Gemini exige formato: { role: "user" | "model", parts: [{ text: "..." }] }
+      const historicoFormatado = mensagens.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }]
+      }));
+
       const bodyParams = {
-        inputs: {},
-        query: mensagemUser,
-        response_mode: "streaming",
-        user: currentUser.uid
+        contents: [
+          ...historicoFormatado,
+          {
+            role: 'user',
+            parts: parts
+          }
+        ],
+        systemInstruction: {
+          parts: [{ text: "Você é a Soraya AI. Responda sempre em português e seja profissional." }]
+        }
       };
 
-      if (fileIds.length > 0) {
-        bodyParams.files = fileIds.map((id, idx) => {
-          const file = arquivosEnviados[idx];
-          
-          // Dify suporta 'image' (jpg, jpeg, png, gif, webp, svg) e 'document' para o resto
-          const isImage = file.type.startsWith('image/');
-          
-          return {
-            type: isImage ? "image" : "document",
-            transfer_method: "local_file",
-            upload_file_id: id
-          };
-        });
-      }
+      // Usa a URL do proxy Nginx para esconder a chave! Usando o modelo Pro para PDF e análises complexas
+      const url = '/api/gemini/models/gemini-2.5-pro:streamGenerateContent?alt=sse';
 
-      if (conversationId) {
-        bodyParams.conversation_id = conversationId;
-      }
-
-      // Chama o nosso próprio servidor proxy Nginx sem passar chave nenhuma
       const response = await fetch(url, {
         method: 'POST',
         headers: { 
@@ -271,16 +263,15 @@ export default function Chat() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || "Erro de comunicação com o servidor.");
+        throw new Error(errData.error?.message || "Erro de comunicação com o servidor Google.");
       }
       
+      // Lógica de leitura de Streaming SSE do Gemini
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let partialAnswer = "";
       
       setMensagens([...novasMensagens, { role: 'assistant', content: partialAnswer }]);
-      
-      let newConversationId = conversationId;
       let buffer = "";
       
       while (true) {
@@ -297,27 +288,22 @@ export default function Chat() {
           if (line.startsWith('data: ')) {
             try {
               const dataStr = line.slice(6);
+              if (dataStr === '[DONE]') continue; // Fim do stream
+
               const dataJson = JSON.parse(dataStr);
               
-              if (dataJson.conversation_id && !newConversationId) {
-                newConversationId = dataJson.conversation_id;
-                setConversationId(newConversationId);
-              }
-
-              if (dataJson.event === 'agent_message' || dataJson.event === 'message') {
-                partialAnswer += dataJson.answer;
+              if (dataJson.candidates && dataJson.candidates[0].content.parts[0].text) {
+                partialAnswer += dataJson.candidates[0].content.parts[0].text;
                 setMensagens([...novasMensagens, { role: 'assistant', content: partialAnswer }]);
-              } else if (dataJson.event === 'error') {
-                throw new Error(dataJson.message || "Erro no agente");
               }
-            } catch {
-              // Ignore parse errors
+            } catch (err) {
+              // Ignore partial parse errors in SSE
             }
           }
         }
       }
     } catch (err) {
-      console.error("Erro na API Dify:", err);
+      console.error("Erro na API Gemini:", err);
       setMensagens([...novasMensagens, { role: 'assistant', content: `❌ Erro: ${err.message || 'Falha ao consultar agente.'}` }]);
     } finally {
       setCarregando(false);

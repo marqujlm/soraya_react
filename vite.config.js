@@ -13,14 +13,15 @@ export default defineConfig(({ mode }) => {
     ],
     server: {
       proxy: {
-        '/api/dify': {
-          target: env.VITE_ENDPOINT_DIFY || 'https://api.dify.ai/v1',
+        '/api/gemini': {
+          target: 'https://generativelanguage.googleapis.com/v1beta',
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/dify/, ''),
+          rewrite: (path) => path.replace(/^\/api\/gemini/, ''),
           configure: (proxy, options) => {
             proxy.on('proxyReq', (proxyReq, req, res) => {
-              if (env.VITE_API_DIFY) {
-                proxyReq.setHeader('Authorization', `Bearer ${env.VITE_API_DIFY}`);
+              if (env.VITE_GEMINI_API_KEY) {
+                // A API do Google usa esse header
+                proxyReq.setHeader('x-goog-api-key', env.VITE_GEMINI_API_KEY);
               }
             });
           }

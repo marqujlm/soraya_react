@@ -13,16 +13,14 @@ find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_ST
 find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_MESSAGING_SENDER_ID_PLACEHOLDER|${VITE_FIREBASE_MESSAGING_SENDER_ID}|g" {} +
 find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_APP_ID_PLACEHOLDER|${VITE_FIREBASE_APP_ID}|g" {} +
 
-# Substitui as variáveis ocultas (Dify) diretamente no arquivo de configuração do Nginx gerado
+# Substitui as variáveis ocultas (Backend/GenAI)
 if [ -f /etc/nginx/conf.d/default.conf ]; then
-  sed -i "s|VITE_API_DIFY_PLACEHOLDER|${VITE_API_DIFY}|g" /etc/nginx/conf.d/default.conf
-  sed -i "s|VITE_ENDPOINT_DIFY_PLACEHOLDER|${VITE_ENDPOINT_DIFY}|g" /etc/nginx/conf.d/default.conf
+  sed -i "s|VITE_GEMINI_API_KEY_PLACEHOLDER|${VITE_GEMINI_API_KEY}|g" /etc/nginx/conf.d/default.conf
 else
   # Fallback caso a geração pelo entrypoint tenha falhado
   export PORT="${PORT:-8080}"
   envsubst "\$PORT" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
-  sed -i "s|VITE_API_DIFY_PLACEHOLDER|${VITE_API_DIFY}|g" /etc/nginx/conf.d/default.conf
-  sed -i "s|VITE_ENDPOINT_DIFY_PLACEHOLDER|${VITE_ENDPOINT_DIFY}|g" /etc/nginx/conf.d/default.conf
+  sed -i "s|VITE_GEMINI_API_KEY_PLACEHOLDER|${VITE_GEMINI_API_KEY}|g" /etc/nginx/conf.d/default.conf
 fi
 
 echo "Inicializando o Nginx..."
