@@ -167,10 +167,18 @@ export default function Chat() {
   };
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setArquivosSelecionados(prev => [...prev, ...Array.from(e.target.files)]);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newFiles = Array.from(files);
+      setArquivosSelecionados(prev => [...prev, ...newFiles]);
     }
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    
+    // Pequeno atraso para garantir que a renderização do React capture o arquivo
+    setTimeout(() => {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }, 200);
   };
 
   const removeFile = (indexToRemove) => {
@@ -180,21 +188,27 @@ export default function Chat() {
 // Converte um arquivo do input HTML para o formato InlineData que o Gemini espera
   const fileToGenerativePart = async (file) => {
     return new Promise((resolve, reject) => {
+      // Limite preventivo: Gemini inlineData tem limite rígido de ~20MB
+      if (file.size > 20 * 1024 * 1024) {
+        reject(new Error(`O arquivo ${file.name} é muito grande (Máximo de 20MB).`));
+        return;
+      }
+      
       const reader = new FileReader();
-      reader.onloadend = () => {
-        // Pega apenas a string Base64 depois da vírgula do DataURL
-        const base64Data = reader.result.split(',')[1];
-        resolve({
-          inlineData: {
-            data: base64Data,
-            mimeType: file.type
-          }
-        });
+      reader.onload = () => {
+        try {
+          const base64Data = reader.result.split(',')[1];
+          resolve({
+            inlineData: {
+              data: base64Data,
+              mimeType: file.type || "application/pdf"
+            }
+          });
+        } catch (e) {
+          reject(new Error("Falha ao processar o arquivo."));
+        }
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
+      reader.onerror = () => reject(new Error("Erro na leitura do arquivo."));
 
   const enviarPergunta = async (e) => {
     e.preventDefault();
@@ -220,6 +234,9 @@ export default function Chat() {
       // Adicionar o texto principal na lista de partes
       if (mensagemUser.trim()) {
         parts.push({ text: mensagemUser });
+      } else {
+        // Se a mensagem for vazia (apenas anexo), manda um texto invisivel pro Gemini nao dar erro
+        parts.push({ text: " " });
       }
 
       // Converter e adicionar os arquivos em Base64
@@ -231,11 +248,22 @@ export default function Chat() {
       }
 
       // Recuperar histórico formatado para o Gemini
-      // O Gemini exige formato: { role: "user" | "model", parts: [{ text: "..." }] }
-      const historicoFormatado = mensagens.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }]
-      }));
+      const historicoFormatado = mensagens.map(msg => {
+        const msgParts = [];
+        if (msg.content) {
+          msgParts.push({ text: msg.content });
+        }
+        // Nota: no histórico não reenviamos os arquivos inlineData para poupar tokens/memória
+        // apenas se o content for vazio, precisamos garantir que enviaremos um espaço vazio válido
+        if (msgParts.length === 0) {
+          msgParts.push({ text: " " });
+        }
+        
+        return {
+          role: msg.role === 'user' ? 'user' : 'model',
+          parts: msgParts
+        };
+      });
 
       const bodyParams = {
         contents: [
@@ -250,8 +278,8 @@ export default function Chat() {
         }
       };
 
-      // Usa a URL do proxy Nginx para esconder a chave! Usando o modelo Pro para PDF e análises complexas
-      const url = '/api/gemini/models/gemini-2.5-pro:streamGenerateContent?alt=sse';
+      // Usa a URL do proxy Nginx para esconder a chave! Usando o modelo Pro oficial do Google para PDFs
+      const url = '/api/gemini/models/gemini-1.5-pro:streamGenerateContent?alt=sse';
 
       const response = await fetch(url, {
         method: 'POST',
@@ -470,7 +498,8 @@ export default function Chat() {
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileChange} 
-                className="hidden" 
+                className="sr-only"
+                accept=".pdf,image/*,.doc,.docx,.txt"
                 multiple
               />
 
