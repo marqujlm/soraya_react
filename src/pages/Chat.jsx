@@ -205,12 +205,18 @@ export default function Chat() {
       if (arquivosEnviados.length > 0) {
         for (const arquivo of arquivosEnviados) {
           const formData = new FormData();
+          // A API do Dify espera estritamente o arquivo e o usuário.
           formData.append('file', arquivo);
           formData.append('user', currentUser.uid);
 
+          // Opcional: Se for imagem e precisar adicionar o type explicitamente
+          // (A maioria dos navegadores já anexa o mime-type no blob, mas por via das dúvidas)
+          
           // Chama o proxy Nginx sem expor URL final ou chaves
           const uploadUrl = '/api/dify/files/upload';
 
+          // ATENÇÃO: NUNCA defina 'Content-Type': 'multipart/form-data' manualmente no fetch, 
+          // o navegador precisa definir o "boundary" sozinho!
           const uploadRes = await fetch(uploadUrl, {
             method: 'POST',
             body: formData
