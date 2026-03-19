@@ -1,11 +1,16 @@
 #!/bin/sh
 set -e
 
-# Executa os scripts nativos do Docker Nginx para gerar o /etc/nginx/conf.d/default.conf a partir do template
-/docker-entrypoint.sh nginx -t > /dev/null 2>&1 || true
+echo "Iniciando injecao de configuracoes..."
 
-echo "Injetando variáveis de ambiente em tempo de execução..."
+# Forca imediatamente a criacao da config do Nginx com a Porta dinamica que o Cloud Run manda no boot
+export PORT="${PORT:-8080}"
+envsubst "\$PORT" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
 
+# Substitui as variaveis ocultas do backend no arquivo do Nginx que acabou de ser criado
+sed -i "s|VITE_GEMINI_API_KEY_PLACEHOLDER|${VITE_GEMINI_API_KEY}|g" /etc/nginx/conf.d/default.conf
+
+echo "Injetando variáveis de ambiente Firebase no Frontend React..."
 find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_API_KEY_PLACEHOLDER|${VITE_FIREBASE_API_KEY}|g" {} +
 find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_AUTH_DOMAIN_PLACEHOLDER|${VITE_FIREBASE_AUTH_DOMAIN}|g" {} +
 find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_PROJECT_ID_PLACEHOLDER|${VITE_FIREBASE_PROJECT_ID}|g" {} +
@@ -13,16 +18,6 @@ find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_ST
 find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_MESSAGING_SENDER_ID_PLACEHOLDER|${VITE_FIREBASE_MESSAGING_SENDER_ID}|g" {} +
 find /usr/share/nginx/html -type f -name "*.js" -exec sed -i "s|VITE_FIREBASE_APP_ID_PLACEHOLDER|${VITE_FIREBASE_APP_ID}|g" {} +
 
-# Substitui as variáveis ocultas (Backend/GenAI)
-if [ -f /etc/nginx/conf.d/default.conf ]; then
-  sed -i "s|VITE_GEMINI_API_KEY_PLACEHOLDER|${VITE_GEMINI_API_KEY}|g" /etc/nginx/conf.d/default.conf
-else
-  # Fallback caso a geração pelo entrypoint tenha falhado
-  export PORT="${PORT:-8080}"
-  envsubst "\$PORT" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
-  sed -i "s|VITE_GEMINI_API_KEY_PLACEHOLDER|${VITE_GEMINI_API_KEY}|g" /etc/nginx/conf.d/default.conf
-fi
-
-echo "Inicializando o Nginx..."
+echo "Pronto! Inicializando o Nginx com o comando passado..."
 exec "$@"
 
