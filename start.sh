@@ -1,11 +1,6 @@
 #!/bin/sh
-# Sem o set -e, se um comando find ou sed falhar porque os arquivos não mudaram, o container não morre.
 
 echo "Iniciando injecao de configuracoes..."
-
-# Forca imediatamente a criacao da config do Nginx com a Porta dinamica que o Cloud Run manda no boot
-export PORT="${PORT:-8080}"
-envsubst "\$PORT" < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
 
 # Substitui as variaveis ocultas do backend no arquivo do Nginx que acabou de ser criado
 sed -i "s|VITE_GEMINI_API_KEY_PLACEHOLDER|${VITE_GEMINI_API_KEY}|g" /etc/nginx/conf.d/default.conf || true

@@ -19,8 +19,8 @@ FROM nginx:alpine
 # Remove as configurações padrões do Nginx
 RUN rm -rf /etc/nginx/conf.d/*
 
-# Copia a configuração do template Nginx (suporte nativo Cloud Run via $PORT)
-COPY nginx.conf /etc/nginx/templates/default.conf.template
+# Copia a configuração do template Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copia os arquivos minificados
 COPY --from=build /app/dist /usr/share/nginx/html
